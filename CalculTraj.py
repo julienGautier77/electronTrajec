@@ -56,20 +56,19 @@ class WINRESULT(QWidget):
         self.setWindowTitle('Energy calculation')
         self.setLayout(vbox)
     
-    def actionButton(self) :
+    def actionButton(self):
         self.posBox.editingFinished.connect(self.calculE)
 
     def calculE(self):
+        # Find the Enrgy for a postion on the lanex
         f_E = interp1d(self.parent.threadCalcul.s, self.parent.threadCalcul.E)
-        if self.posBox.value()<self.parent.threadCalcul.s.max():
+        if self.posBox.value() < self.parent.threadCalcul.s.max():
             self.EBox.setValue(f_E(self.posBox.value()))
         
     def closeEvent(self, event):
         """ when closing the window
         """
         self.isWinOpen = False
-
-
 
 class WINTRAJECTOIRE(QMainWindow):
     signalPlot = QtCore.pyqtSignal(object)
@@ -430,9 +429,8 @@ class WINTRAJECTOIRE(QMainWindow):
         self.threadCalcul.start()
 
     def progress(self, rem):
-        
         self.progressBar.setValue(int(rem[0]))
-        self.EcalLabel.setText(str(round(rem[1],2))+ ' Mev')
+        self.EcalLabel.setText(str(round(rem[1],2)) + ' Mev')
         self.EcalLabel.setStyleSheet("QLabel {color:rgb(%f,%f,%f)}" % (rem[2][0], rem[2][1], rem[2][2]))
 
     def stopCalcul(self):
