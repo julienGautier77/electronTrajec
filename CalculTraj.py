@@ -77,6 +77,7 @@ class WINTRAJECTOIRE(QMainWindow):
 
         super().__init__()
         self.parent = parent
+        self.isWinOpen = False
         self.p = pathlib.Path(__file__)
         sepa = os.sep
         self.icon = str(self.p.parent) + sepa+'icons' + sepa
@@ -87,6 +88,7 @@ class WINTRAJECTOIRE(QMainWindow):
         self.threadCalcul = CALCULTHREAD(parent=self)
         self.actionButton()
         self.CheckChangeB()
+        
 
     def setup(self):
         # define button
@@ -124,13 +126,13 @@ class WINTRAJECTOIRE(QMainWindow):
         self.ResultMenu.addAction(self.resAct)
 
         self.winDisp = WinCut.GRAPHCUT(self, title='Plot Dispersion' )
-        self.DispAct = QAction('Plot  Dispersission', self)
+        self.DispAct = QAction('Plot  Dispersion', self)
         self.DispAct.triggered.connect(lambda: self.open_widget(self.winDisp))
         self.DispAct.triggered.connect(self.DispDisplay)
         self.ResultMenu.addAction(self.DispAct)
 
-        self.winDist = WinCut.GRAPHCUT(self, title='Plot Electron distance' )
-        self.DistAct = QAction('Plot  Distance electron', self)
+        self.winDist = WinCut.GRAPHCUT(self, title='Plot Electron length path' )
+        self.DistAct = QAction('Plot  Distance Electron length path', self)
         self.DistAct.triggered.connect(lambda: self.open_widget(self.winDist))
         self.DistAct.triggered.connect(self.DistDisplay)
         self.ResultMenu.addAction(self.DistAct)
@@ -140,6 +142,12 @@ class WINTRAJECTOIRE(QMainWindow):
         self.DsDEAct.triggered.connect(lambda: self.open_widget(self.winDsDE))
         self.DsDEAct.triggered.connect(self.DsDEDisplay)
         self.ResultMenu.addAction(self.DsDEAct)
+
+        self.winResol = WinCut.GRAPHCUT(self, title='Resolution')
+        self.ResolAct = QAction('Plot  Resolution', self)
+        self.ResolAct.triggered.connect(lambda: self.open_widget(self.winResol))
+        self.ResolAct.triggered.connect(self.ResolDisplay)
+        self.ResultMenu.addAction(self.ResolAct)
 
         vbox1 = QVBoxLayout()
 
@@ -159,20 +167,20 @@ class WINTRAJECTOIRE(QMainWindow):
         Hbox1.addWidget(self.sourceX)
         Hbox1.addWidget(labelSourceY)
         Hbox1.addWidget(self.sourceY)
-        Spacer1 = QSpacerItem(1, 1, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        Hbox1.addItem(Spacer1)
-        vbox1.addLayout(Hbox1)
-
-        # Hbox2 = QHBoxLayout()
+        divLabel = QLabel('div')
+        Hbox1.addWidget(divLabel)
+        self.divBox = QDoubleSpinBox()
+        self.divBox.setSuffix(' mrad')
+        Hbox1.addWidget(self.divBox)
         labelAngle = QLabel('Angle Faisceau/oy')
         self.angle = QDoubleSpinBox()
         self.angle.setSuffix(' °')
         self.angle.setRange(-180, 180)
         Hbox1.addWidget(labelAngle)
         Hbox1.addWidget(self.angle)
-        # Spacer2 = QSpacerItem(1, 1, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        # Hbox2.addItem(Spacer2)
-        # vbox1.addLayout(Hbox2)
+        Spacer1 = QSpacerItem(1, 1, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        Hbox1.addItem(Spacer1)
+        vbox1.addLayout(Hbox1)
 
         Hbox3 = QHBoxLayout()
         labelLanex = QLabel('Position Lanex')
@@ -193,7 +201,7 @@ class WINTRAJECTOIRE(QMainWindow):
         labelLanexAngle = QLabel('Angle(°)/ox')
         self.lanexAngle = QDoubleSpinBox()
         self.lanexAngle.setSuffix(' °')
-        self.lanexAngle.setRange(-180, 180)
+        self.lanexAngle.setRange(-360, 360)
         Hbox3.addWidget(labelLanexAngle)
         Hbox3.addWidget(self.lanexAngle)
         Spacer3 = QSpacerItem(1, 1, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -264,18 +272,14 @@ class WINTRAJECTOIRE(QMainWindow):
         self.NBox.setRange(1, 10000)
         Hbox6.addWidget(self.NBox)
 
-        divLabel = QLabel('div')
-        Hbox6.addWidget(divLabel)
-        self.divBox = QDoubleSpinBox()
-        self.divBox.setSuffix(' mrad')
-        Hbox6.addWidget(self.divBox)
-
         lanexLabel = QLabel('Lanex length')
         Hbox6.addWidget(lanexLabel)
         self.lanexBox = QDoubleSpinBox()
         self.lanexBox.setSuffix(' mm')
         self.lanexBox.setRange(0, 10000)
         Hbox6.addWidget(self.lanexBox)
+        Spacer6 = QSpacerItem(1, 1, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        Hbox6.addItem(Spacer6)
         vbox1.addLayout(Hbox6)
         
         Hbox7 = QHBoxLayout()
@@ -328,8 +332,8 @@ class WINTRAJECTOIRE(QMainWindow):
 
     def actionButton(self):
 
-        self.proxy = pg.SignalProxy(self.p2.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
-        self.vb = self.p2.vb
+        self.proxy = pg.SignalProxy(self.p1.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
+        self.vb = self.p1.vb
         self.sourceX.editingFinished.connect(self.set_default)
         self.sourceY.editingFinished.connect(self.set_default)
         self.angle.editingFinished.connect(self.set_default)
@@ -343,12 +347,12 @@ class WINTRAJECTOIRE(QMainWindow):
         self.NBox.editingFinished.connect(self.set_default)
         self.divBox.editingFinished.connect(self.set_default)
         self.lanexBox.editingFinished.connect(self.set_default)
+        self.AimantLength.editingFinished.connect(self.set_default)
+        self.AimantWidth.editingFinished.connect(self.set_default)
         self.BButton.clicked.connect(self.BLoad)
         self.calculButton.clicked.connect(self.startCalcul)
         self.stopButton.clicked.connect(self.stopCalcul)
         self.threadCalcul.remain.connect(self.progress)
-        self.AimantLength.editingFinished.connect(self.set_default)
-        self.AimantWidth.editingFinished.connect(self.set_default)
         self.checkB.stateChanged.connect(self.CheckChangeB)
 
     def iniValue(self):
@@ -373,7 +377,7 @@ class WINTRAJECTOIRE(QMainWindow):
         self.set_default()
 
     def set_default(self):
-        # save values in the default ini file
+        # save values in the default ini file and read value 
         self.paraFile.setValue("/"+"/x_j", self.sourceX.value())
         self.paraFile.setValue("/"+"/y_j", self.sourceY.value())
         self.paraFile.setValue("/"+"/theta_e", self.angle.value())
@@ -413,7 +417,7 @@ class WINTRAJECTOIRE(QMainWindow):
         self.Emax = int(self.EmaxBox.value())  # 4000
         self.Nt = int(self.NBox.value())  # 100  # nombre de trjectoire
         self.progressBar.setMaximum(int(self.Nt)-1)
-        self. div = self.divBox.value() * 1e-3  # 1e-3  # divergence FWHM du faisceau en radian (calcul resolution) 
+        self.div = self.divBox.value() * 1e-3  # 1e-3  # divergence FWHM du faisceau en radian (calcul resolution) 
         self.long_lanex = self.lanexBox.value()  # 870  # mm
         self.sens_B = self.BSensBox.value()  # -1  # =1 si le fichier contenant Bz(x,y) donne le bon signe, =-1 inverse le signe de B(x,y) 
 
@@ -469,26 +473,28 @@ class WINTRAJECTOIRE(QMainWindow):
         # 4eme colonne = angle des electrons par rapport ? Ox (sens)
         # 5eme colone = distance parcourue par les electrons
         fname = QFileDialog.getSaveFileName(self, "export dispersion file ")
-        fichier = fname[0]
-        dat = np.array([self.threadCalcul.EInter, self.threadCalcul.ds_dE, self.threadCalcul.sInter, self.threadCalcul.thetaInter, self.threadCalcul.Dsource])
+        fichier = fname[0]+'.txt'
+        dat = np.array([self.threadCalcul.EInter, self.threadCalcul.ds_dE, self.threadCalcul.sInter, self.threadCalcul.thetaInter, self.threadCalcul.DsourceInter])
         dat = dat.T
-        np.savetxt(str(fichier)+'.txt', dat)
+        np.savetxt(str(fichier), dat)
+        if self.parent is not None:
+            self.parent.confSpectro.setValue("/"+"/dsde_name",str(fichier))
     
     def mouseMoved(self, evt):
         # to print position of the mouse on the second graph   
         pos = evt[0]  # using signal proxy turns original arguments into a tuple
         
         if self.threadCalcul.E is not None:
-            if self.p2.sceneBoundingRect().contains(pos):
+            if self.p1.sceneBoundingRect().contains(pos):
                 mousePoint = self.vb.mapSceneToView(pos)
                 mx = np.array([abs(i-mousePoint.x()) for i in self.threadCalcul.E])
                 index = mx.argmin()
-                if index >= 0 and index < len(self.threadCalcul.E):
-                    self.xMouse = (mousePoint.x())
-                    self.yMouse = (mousePoint.y())
-                    self.xMc = self.threadCalcul.E[index]
-                    self.yMc = self.threadCalcul.s[index]
-                    self.label_Cross.setText('E =' + str(round((self.xMc), 2)) + ' Mev ' + ' pos=' + str(round(self.yMc, 2)))
+                #if index >= 0 and index < len(self.threadCalcul.E):
+                self.xMouse = (mousePoint.x())
+                self.yMouse = (mousePoint.y())
+                    # self.xMc = self.threadCalcul.E[index]
+                    # self.yMc = self.threadCalcul.s[index]
+                self.label_Cross.setText(str(round((self.xMouse), 2)) + '    ,    '+ str(round(self.yMouse, 2)))
                     
     def CheckChangeB(self):
         if self.checkB.isChecked() is True:
@@ -507,17 +513,17 @@ class WINTRAJECTOIRE(QMainWindow):
             self.pathBLine.setEnabled(True)
 
     def DispDisplay(self):
-        self.winDisp.PLOT(self.threadCalcul.sInter, axis=self.threadCalcul.EInter, label='E (Mev)', labelY='Lanex (mm)')
+        self.winDisp.PLOT(self.threadCalcul.sInter, axis=self.threadCalcul.EInter, label='E (Mev)', labelY='Lanex Screen (mm)')
 
     def DistDisplay(self):
-        
-        #self.winDist.PLOT(self.threadCalcul.Dsource, axis=self.threadCalcul.E, label='E (Mev)', labelY='D (mm)')
         self.winDist.PLOT(self.threadCalcul.DsourceInter, axis=self.threadCalcul.EInter, label='E (Mev)', labelY='D (mm)')
     
     def DsDEDisplay(self):
-        
         self.winDsDE.PLOT(self.threadCalcul.ds_dE, axis=self.threadCalcul.EInter, label='E (Mev)', labelY='Ds/DE (mm/Mev)')
-        
+
+    def ResolDisplay(self):
+        self.winResol.PLOT(self.threadCalcul.resolInter, axis=self.threadCalcul.EInter, label='E (Mev)', labelY='Resolution(%)')
+
     def open_widget(self, fene):
         """ open new widget
         """
@@ -530,7 +536,11 @@ class WINTRAJECTOIRE(QMainWindow):
             # fene.activateWindow()
             # fene.raise_()
             fene.showNormal()
-
+    
+    def closeEvent(self, event):
+        """ when closing the window
+        """
+        self.isWinOpen = False
 
 class CALCULTHREAD(QtCore.QThread):
     '''
@@ -542,10 +552,9 @@ class CALCULTHREAD(QtCore.QThread):
     def __init__(self, parent=None):
         super(CALCULTHREAD, self).__init__()
         self.parent = parent
-        # self.curve = pg.PlotCurveItem()
-        # self.parent.p1.addItem(self.curve)
         self.E = None
         self.aa = 0
+        
 
     def wc_interp(self, x, y):
         #  return wc interpollated x,y in mm =0 if x,y  out of the file
@@ -559,7 +568,8 @@ class CALCULTHREAD(QtCore.QThread):
 
     def odefun(self, t, y):
         # differential equation
-        dydt = np.zeros(4)  # v=Y[0]ex+y[1]ey X=Y[2]ex+Y[3]ey
+        # v=Y[0]ex+y[1]ey x=Y[2]ex+Y[3]ey
+        dydt = np.zeros(4)  
         if self.parent.checkB.isChecked() is False:  # b from file with interpolation
 
             dydt[0] = - self.wc_interp(y[2]*1e3, y[3]*1e3) * y[1] / np.sqrt(1 + y[0]**2 + y[1]**2)
@@ -568,14 +578,15 @@ class CALCULTHREAD(QtCore.QThread):
             dydt[3] = c * y[1] / np.sqrt(1 + y[0]**2 + y[1]**2)
 
         else:  # B constant
-            if (-self.parent.L/2 < y[3] * 1e3 < self.parent.L/2) and (-self.parent.La/2 < y[2] * 1e3 < self.parent.La/2):
-                # print('dans aimant')
+            
+            if (-1*self.parent.L/2  < y[3]*1e3 < self.parent.L/2 ) and (-self.parent.La/2 < y[2]*1e3  < self.parent.La/2):
+                #print('dans aimant')
                 dydt[0] = -self.wc * y[1] / np.sqrt(1 + y[0]**2 + y[1]**2)
                 dydt[1] = self.wc * y[0] / np.sqrt(1 + y[0]**2 + y[1]**2)
                 dydt[2] = c * y[0] / np.sqrt(1 + y[0]**2 + y[1]**2)
                 dydt[3] = c * y[1] / np.sqrt(1 + y[0]**2 + y[1]**2)
             else:
-                # print('hors aimant')
+                # print('hors aimant')resol
                 dydt[0] = 0  # B=0
                 dydt[1] = 0
                 dydt[2] = c * y[0] / np.sqrt(1 + y[0]**2 + y[1]**2)
@@ -601,7 +612,7 @@ class CALCULTHREAD(QtCore.QThread):
 
         event.terminal = True
 
-        # # Energie de electrons :
+        # # Energie de electrons :resol
         E = np.linspace(self.parent.Emin, self.parent.Emax, self.parent.Nt)
         dE = abs(E[2]-E[1])
 
@@ -614,6 +625,7 @@ class CALCULTHREAD(QtCore.QThread):
         # Positions initiales 
         x0 = np.zeros(self.parent.Nt) + self.parent.x_j*1e-3
         y0 = np.zeros(self.parent.Nt) + self.parent.y_j*1e-3
+
         # Impulsions initiales (ici u=gamma*beta=p/mc)
         ux0 = -np.ones(self.parent.Nt) * gamma * beta * np.sin(self.parent.theta_e)
         uy0 = np.ones(self.parent.Nt) * gamma * beta * np.cos(self.parent.theta_e)
@@ -647,13 +659,13 @@ class CALCULTHREAD(QtCore.QThread):
             self.parent.p1.plot([-self.parent.La/2, -self.parent.La/2], [-self.parent.L/2, self.parent.L/2], pen='b')
             self.parent.p1.plot([self.parent.La/2, self.parent.La/2], [-self.parent.L/2, self.parent.L/2], pen='b')
         
-        # =============================================================================
-        # Projection sur le lanex
-        # =============================================================================
+        #  =============================================================================
+        #  Projection sur le lanex
+        #  =============================================================================
 
         x_lanex_end = self.parent.x_d - self.parent.long_lanex * np.cos(self.parent.theta_l)
         y_lanex_end = self.parent.y_d - self.parent.long_lanex * np.sin(self.parent.theta_l)
-        # plot line to show the lanex
+        #  plot line to show the lanex
         self.parent.p1.plot([self.parent.x_d, x_lanex_end], [self.parent.y_d, y_lanex_end], pen='red')
         
         Dsource = np.zeros(self.parent.Nt)
@@ -664,28 +676,27 @@ class CALCULTHREAD(QtCore.QThread):
         for i in range(0, self.parent.Nt):
             if self.stop is True:
                 break
-            
-             
-            
             # print('trajectoire nb : ', i, E[i], 'Mev')
-            # input('appuyer pour continuer...')
+            #input('appuyer pour continuer...')
         
             # Résolution de l'équation différentielle
+            
             sol = solve_ivp(self.odefun, [0, abs(3000*np.pi/self.wc)], 
                             np.array([ux0[i], uy0[i], x0[i], y0[i]]),
-                            method='RK45', events=event, rtol=1e-12, atol=1e-12)
+                            method='LSODA', events=event,rtol=1e-15, atol=1e-15) #RK45
             
             # Représentation graphique des trajectoires
             # define random color
             col = (255*np.random.random(), 255*np.random.random(), 255*np.random.random())
-            prog = [i, E[i], col]
-            self.remain.emit(prog) # for the progress bar
+            prog = [i, E[i], col] # send to mainGui i, E,color for the progress bar and show Energy 
+            self.remain.emit(prog) 
             if i < 5 :  # too slow with a lot of trejectory :plot only the 5th and then only one
                 self.winplot = self.parent.p1.plot(sol.y[2] * 1e3, sol.y[3] * 1e3, pen=col, clear=False)
             else:
-                self.winplot.setData(sol.y[2] * 1e3, sol.y[3] * 1e3)
+                self.winplot.setData(sol.y[2] * 1e3, sol.y[3] * 1e3, pen=col)
             # a=[sol.y[2], sol.y[3]]
             # self.plotData.emit(a)
+
             # Calcul de la distance parcourue par les électrons
             for j in range(0, (sol.y[1]).shape[0]-1):
                 Dsource[i] = Dsource[i] + np.sqrt((sol.y[2, j+1] * 1e3 - sol.y[2, j] * 1e3)**2 + (sol.y[3, j+1] * 1e3 - sol.y[3,j] * 1e3)**2)
@@ -710,10 +721,8 @@ class CALCULTHREAD(QtCore.QThread):
         self.s = s  # position sur le dectecteur
         self.theta = theta
         self.ds_dE = np.diff(self.s) / np.diff(E)
+        
         self.Dsource = Dsource  # distance parcouru
-        #P = np.polyfit(1/E, s, 4)
-        #s2 = np.polyval(P, 1/E)
-        #self.ds_dE3 = np.diff(s2) / dE
         
         f_s3 = interp1d(E, s) # fct for  interpol 
         self.sInter = f_s3(self.EInter) # intef pol de s vs E
@@ -723,9 +732,12 @@ class CALCULTHREAD(QtCore.QThread):
         f_d = interp1d(E, Dsource) # fct for  interpol 
         self.DsourceInter = f_d(self.EInter)
         # plot dispersion en fct E 
-        self.parent.p2.plot(E, self.s, symbol='+', name='no interp', symbolBrush='w', symbolSize= 3)
-        self.parent.p2.plot(self.EInter, self.sInter, pen='r', name="interpolation")
+        #self.parent.p2.plot(E, self.s, symbol='+', name='no interp', symbolBrush='w', symbolSize= 3)
+        #self.parent.p2.plot(self.EInter, self.sInter, pen='r', name="interpolation")
         
+        self.resolInter = 2*self.DsourceInter*np.tan(self.parent.div/2)
+
+        self.resolInter= 100*(self.resolInter/self.ds_dE )/ self.EInter
 
         # self.parent.p2.plot(self.E, self.ds_dE3)
         # self.parent.p2.plot(self.E, self.ds_dE, pen='r')
